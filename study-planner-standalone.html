@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Study Planner">
+<title>Med Study Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one calm column on phone; two columns (tasks | exams + progress) from tablet width. Tabs pinned at top. Single light theme by request: white ground, pastel purple accents. */
+:root{
+  color-scheme: light;
+  --bg:#ffffff;
+  --ink:#251f35;
+  --muted:#6e6784;
+  --line:#ece8f4;
+  --soft:#f7f5fc;
+  --accent:#c9bbf3;
+  --accent-soft:#efeafc;
+  --accent-ink:#5a46a6;
+  --danger:#b8425d;
+  --danger-soft:#fcecf0;
+  --warn:#9a6414;
+  --warn-soft:#fdf4e3;
+  --ok:#2f7d5b;
+  --ok-soft:#e6f5ee;
+  --display:"Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --body:"Plus Jakarta Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1000px;margin:0 auto;padding-inline:16px;padding-block:0 64px}
+
+/* Header + tabs */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-inner{max-width:1000px;margin:0 auto;padding-inline:16px;padding-block:12px 0;display:flex;flex-direction:column;gap:10px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand h1{font-family:var(--display);font-weight:400;font-size:28px;line-height:1.1;margin:0;letter-spacing:-.01em}
+.brand h1 em{color:var(--accent-ink)}
+.sync{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block}
+.sync.ok i{background:var(--ok)}
+.sync.busy i{background:var(--warn)}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:10px 14px 12px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;min-height:44px}
+.tab[aria-selected="true"]{color:var(--accent-ink);border-bottom-color:var(--accent-ink)}
+.tab .count{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--danger-soft);color:var(--danger);font-size:12px;line-height:20px;text-align:center}
+
+/* Generic */
+h2{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.15;margin:0;text-wrap:balance}
+h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;font-weight:700}
+.view{display:flex;flex-direction:column;gap:28px;padding-top:22px}
+.section{display:flex;flex-direction:column;gap:12px}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.num{font-variant-numeric:tabular-nums}
+.btn{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 16px;font-weight:600;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{background:var(--soft)}
+.btn.primary{background:var(--accent-ink);border-color:var(--accent-ink);color:#fff}
+.btn.primary:hover{background:#4b3a91}
+.btn.soft{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--accent-ink)}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:14px;border-radius:10px}
+.icon-btn{border:0;background:none;width:40px;height:40px;border-radius:10px;display:inline-grid;place-items:center;color:var(--muted)}
+.icon-btn:hover{background:var(--soft);color:var(--ink)}
+.icon-btn svg{width:18px;height:18px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.empty{border:1.5px dashed var(--line);border-radius:var(--r);padding:20px;color:var(--muted);text-align:center;font-size:14px}
+
+/* Checkbox */
+.check{position:relative;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex:none;cursor:pointer}
+.check input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.check .box{width:26px;height:26px;border-radius:8px;border:2px solid var(--accent);background:var(--bg);display:grid;place-items:center;transition:background .15s,border-color .15s}
+.check .box svg{width:16px;height:16px;opacity:0;color:#fff}
+.check input:checked + .box{background:var(--accent-ink);border-color:var(--accent-ink)}
+.check input:checked + .box svg{opacity:1}
+.check input:focus-visible + .box{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Today */
+.today-grid{display:grid;grid-template-columns:1fr;gap:28px}
+@media (min-width:780px){.today-grid{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}}
+.today-date{display:flex;flex-direction:column;gap:2px}
+.today-date .big{font-family:var(--display);font-size:38px;line-height:1.05}
+.summary{display:flex;gap:8px;flex-wrap:wrap}
+.task-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.task{display:flex;align-items:center;gap:6px;padding:6px 12px 6px 6px;border-top:1px solid var(--line);min-width:0}
+.task:first-child{border-top:0}
+.task-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.task-title{font-weight:600;overflow-wrap:anywhere}
+.task-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.task.done .task-title{text-decoration:line-through;color:var(--muted)}
+.late{color:var(--danger);font-weight:600}
+.stage-tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink)}
+.stage-tag.s{background:var(--soft);color:var(--ink)}
+
+.exams{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.exam{border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.exam .name{font-weight:700;font-size:14px;overflow-wrap:anywhere}
+.exam .days{font-family:var(--display);font-size:44px;line-height:1}
+.exam .days small{font-family:var(--body);font-size:13px;margin-left:4px;font-weight:600}
+.exam .when{font-size:12px;opacity:.85}
+.exam.past{opacity:.55}
+
+.flag-list{display:flex;flex-direction:column;gap:8px}
+.flag{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--warn-soft);border-radius:12px;padding:10px 12px}
+.flag .t{flex:1;min-width:180px;font-size:14px}
+.flag .t b{font-weight:700}
+.flag-ico{color:var(--warn);display:inline-flex}
+
+.progress-list{display:flex;flex-direction:column;gap:14px}
+.prog{display:flex;flex-direction:column;gap:6px}
+.prog-row{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.prog-row b{font-weight:600;overflow-wrap:anywhere}
+.bar{height:10px;border-radius:6px;background:var(--soft);overflow:hidden}
+.bar span{display:block;height:100%;border-radius:6px;background:var(--accent-ink)}
+.prog-stages{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+
+/* Subjects */
+.subject{border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.subject-head{padding:14px 12px 14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.subject-head .name{flex:1;min-width:160px;display:flex;flex-direction:column;gap:2px}
+.subject-head .name strong{font-size:18px;overflow-wrap:anywhere}
+.subject-tools{display:flex;gap:2px;align-items:center}
+.lectures{display:flex;flex-direction:column}
+.lecture{border-top:1px solid var(--line);padding:12px 12px 12px 16px;display:flex;flex-direction:column;gap:8px}
+.lecture-top{display:flex;align-items:flex-start;gap:8px}
+.lecture-top .t{flex:1;min-width:0}
+.lecture-top .t strong{display:block;overflow-wrap:anywhere}
+.stages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+@media (max-width:420px){.stages{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stage{display:flex;align-items:center;gap:2px;border-radius:12px;background:var(--soft);padding-right:8px;min-width:0}
+.stage .lbl{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.stage .lbl b{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage .lbl span{font-size:12px;color:var(--muted);white-space:nowrap}
+.stage.flagged{background:var(--warn-soft)}
+.stage.flagged .lbl span{color:var(--warn);font-weight:600}
+.stage.overdue .lbl span{color:var(--danger);font-weight:600}
+.stage.is-done{background:var(--accent-soft)}
+.add-lecture{border-top:1px solid var(--line);padding:10px 12px}
+
+/* Calendar */
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cal-head h2{flex:1}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.cal .dow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:center;padding:8px 0;background:var(--soft)}
+.day{border:0;border-top:1px solid var(--line);border-left:1px solid var(--line);background:var(--bg);min-height:76px;padding:6px 4px;display:flex;flex-direction:column;align-items:stretch;gap:3px;text-align:left;min-width:0}
+.day:nth-child(7n+1){border-left:0}
+.day .dn{font-size:13px;font-weight:600;align-self:flex-start;width:26px;height:26px;display:grid;place-items:center;border-radius:50%}
+.day.out{background:var(--soft)}
+.day.out .dn{color:var(--muted);opacity:.6}
+.day.is-today .dn{background:var(--accent-ink);color:#fff}
+.day.sel{box-shadow:inset 0 0 0 2px var(--accent-ink)}
+.marks{display:flex;flex-direction:column;gap:2px;min-width:0}
+.mark{font-size:10.5px;font-weight:700;line-height:16px;border-radius:4px;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mark.exam{background:var(--danger);color:#fff}
+.mark.study{background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+.mark.rev{background:var(--accent-soft);color:var(--accent-ink)}
+.mark.warn{background:var(--warn-soft);color:var(--warn)}
+@media (min-width:700px){.day{min-height:100px;padding:6px}.mark{font-size:11.5px;line-height:18px}}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.dayitems{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.ditem{display:flex;align-items:center;gap:6px;padding:8px 12px 8px 6px;border-top:1px solid var(--line);flex-wrap:wrap}
+.ditem:first-child{border-top:0}
+.ditem .task-main{min-width:150px}
+.ditem input[type=date]{min-height:40px}
+.exam-ico{width:44px;height:44px;display:grid;place-items:center;color:var(--danger)}
+
+/* Forms + sheet */
+label.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+input[type=text],input[type=date],select,textarea{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg);font-size:16px;min-height:46px;width:100%;color:var(--ink)}
+input[type=date]{width:auto;min-width:150px;font-size:15px}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none}
+textarea{min-height:140px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.scrim{position:fixed;inset:0;background:rgba(37,31,53,.32);z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:0}
+@media (min-width:640px){.scrim{align-items:center;padding:24px}}
+.sheet{background:var(--bg);width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px;max-height:92vh;overflow-y:auto}
+@media (min-width:640px){.sheet{border-radius:22px}}
+.sheet-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.form-grid{display:flex;flex-direction:column;gap:14px}
+.override-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatch{width:36px;height:36px;border-radius:50%;border:3px solid transparent;cursor:pointer}
+.swatch[aria-pressed="true"]{border-color:var(--ink)}
+.note{background:var(--soft);border-radius:12px;padding:12px 14px;font-size:14px}
+.card{border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;max-width:calc(100% - 32px)}
+.schedule-strip{display:flex;gap:6px;flex-wrap:wrap}
+.schedule-strip span{font-size:12px;background:var(--accent-soft);color:var(--accent-ink);padding:3px 9px;border-radius:999px;font-weight:600}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>[hidden]{display:none!important}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head><body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1>Study <em>Planner</em></h1>
+      <span class="sync" id="sync"><i></i><span>Loading…</span></span>
+    </div>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-tab="today" id="tab-today">Today</button>
+      <button class="tab" role="tab" data-tab="subjects" id="tab-subjects">Subjects</button>
+      <button class="tab" role="tab" data-tab="calendar" id="tab-calendar">Calendar</button>
+      <button class="tab" role="tab" data-tab="backup" id="tab-backup">Backup</button>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- constants ---------- */
+var KEY = "medStudyPlanner.v1";
+var STAGES = [
+  {k:"s",  label:"Studied",       short:"Study", offset:0,  day:1},
+  {k:"r1", label:"First Review",  short:"R1",    offset:1,  day:2},
+  {k:"r2", label:"Second Review", short:"R2",    offset:3,  day:4},
+  {k:"r3", label:"Third Review",  short:"R3",    offset:10, day:11}
+];
+var PALETTE = [
+  {bg:"#efeafc", ink:"#5a46a6", dot:"#a893ea"},
+  {bg:"#fde9ef", ink:"#a33a5a", dot:"#ef9fb8"},
+  {bg:"#e4f5ee", ink:"#2c7556", dot:"#86cfae"},
+  {bg:"#e6f0fc", ink:"#2f5f9e", dot:"#91b6ea"},
+  {bg:"#fdf0e3", ink:"#9a5a17", dot:"#f0bb85"},
+  {bg:"#f7f3d9", ink:"#7a6a10", dot:"#dccb62"}
+];
+var ICON = {
+  check:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>',
+  edit:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5l3 3L7 16H4v-3z"/></svg>',
+  trash:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg>',
+  flag:'<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3l8 14H2z"/><path d="M10 8v4M10 14.5v.5"/></svg>',
+  left:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l-6 6 6 6"/></svg>',
+  right:'<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4l6 6-6 6"/></svg>',
+  exam:'<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 2.5h7l3 3v12H5z"/><path d="M8 9h4M8 12h4"/></svg>',
+  plus:'<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 4v12M4 10h12"/></svg>'
+};
+
+/* ---------- date helpers (local YYYY-MM-DD) ---------- */
+function pad(n){return (n<10?"0":"")+n}
+function iso(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function parse(s){var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2])}
+function addDays(s,n){var d=parse(s);d.setDate(d.getDate()+n);return iso(d)}
+function diff(a,b){return Math.round((parse(b)-parse(a))/864e5)}
+function today(){return iso(new Date())}
+function validDate(s){return typeof s==="string" && /^\d{4}-\d{2}-\d{2}$/.test(s)}
+var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+var DOW=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+function fmt(s){if(!s)return "—";var d=parse(s);return DOW[d.getDay()].slice(0,3)+" "+d.getDate()+" "+MON[d.getMonth()]}
+function fmtShort(s){if(!s)return "—";var d=parse(s);return d.getDate()+" "+MON[d.getMonth()]}
+function rel(s){var n=diff(today(),s);if(n===0)return "today";if(n===1)return "tomorrow";if(n===-1)return "yesterday";return n>0?"in "+n+" days":Math.abs(n)+" days ago"}
+
+/* ---------- state ---------- */
+function blank(){return {subjects:[],lectures:[],updatedAt:0}}
+function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+
+function normalize(raw){
+  var out=blank();
+  if(!raw||typeof raw!=="object")return out;
+  (Array.isArray(raw.subjects)?raw.subjects:[]).forEach(function(s){
+    if(!s||!s.name)return;
+    out.subjects.push({id:String(s.id||uid()),name:String(s.name).slice(0,120),exam:validDate(s.exam)?s.exam:"",color:(+s.color||0)%PALETTE.length});
+  });
+  var ids={};out.subjects.forEach(function(s){ids[s.id]=1});
+  (Array.isArray(raw.lectures)?raw.lectures:[]).forEach(function(l){
+    if(!l||!l.title||!ids[l.subjectId])return;
+    var ov={};["r1","r2","r3"].forEach(function(k){if(l.ov&&validDate(l.ov[k]))ov[k]=l.ov[k]});
+    var done={};STAGES.forEach(function(st){done[st.k]=!!(l.done&&l.done[st.k])});
+    out.lectures.push({id:String(l.id||uid()),subjectId:String(l.subjectId),title:String(l.title).slice(0,200),studied:validDate(l.studied)?l.studied:"",done:done,ov:ov});
+  });
+  out.updatedAt=+raw.updatedAt||0;
+  return out;
+}
+
+var state=blank();
+try{var cached=localStorage.getItem(KEY);if(cached)state=normalize(JSON.parse(cached))}catch(e){}
+
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function commit(){state.updatedAt=Date.now();saveLocal();queueCloud();render()}
+function hasData(s){return s.subjects.length>0}
+
+/* ---------- cloud sync (private per-person document) ---------- */
+var cloud={ref:null,status:"local",timer:null,writing:false,dirty:false};
+function setSync(st){
+  cloud.status=st;
+  var el=document.getElementById("sync");
+  var txt={local:"Saved on this device",busy:"Saving…",ok:"Saved · syncs to your devices"}[st]||"Saved on this device";
+  el.className="sync"+(st==="ok"?" ok":st==="busy"?" busy":"");
+  el.lastChild.textContent=txt;
+}
+function queueCloud(){
+  if(!cloud.ref){setSync("local");return}
+  setSync("busy");
+  clearTimeout(cloud.timer);
+  cloud.timer=setTimeout(flush,500);
+}
+function flush(retried){
+  if(!cloud.ref)return;
+  if(cloud.writing){cloud.dirty=true;return}
+  cloud.writing=true;cloud.dirty=false;
+  var body={state:{subjects:state.subjects,lectures:state.lectures},updatedAt:state.updatedAt};
+  cloud.ref.set(JSON.parse(JSON.stringify(body))).then(function(){
+    cloud.writing=false;
+    if(cloud.dirty)flush();else setSync("ok");
+  },function(err){
+    cloud.writing=false;
+    if(err&&err.code==="unavailable"&&!retried){setTimeout(function(){flush(true)},800+Math.random()*800);return}
+    if(err&&(err.code==="invalid_argument"||err.code==="revoked"||err.code==="not_granted")){cloud.ref=null}
+    setSync("local");
+  });
+}
+function initCloud(){
+  if(!window.claude||typeof window.claude.use!=="function"){setSync("local");return}
+  Promise.all([window.claude.use("db"),window.claude.use("user")]).then(function(r){
+    var db=r[0],user=r[1];
+    if(!db||!user){setSync("local");return null}
+    return user.id().then(function(id){
+      if(!id){setSync("local");return}
+      cloud.ref=db.doc("data/users/"+id+"/planner");
+      cloud.ref.onSnapshot(function(snap){
+        if(snap.metadata&&snap.metadata.hasPendingWrites)return;
+        if(!snap.exists){ if(hasData(state))queueCloud(); else setSync("ok"); return }
+        var d=snap.data()||{};var remoteAt=+d.updatedAt||0;
+        if(remoteAt>state.updatedAt){
+          var next=normalize(d.state||{});next.updatedAt=remoteAt;state=next;saveLocal();render();setSync("ok");
+        }else if(remoteAt<state.updatedAt){queueCloud()}
+        else setSync("ok");
+      },function(){cloud.ref=null;setSync("local")});
+    });
+  }).catch(function(){setSync("local")});
+}
+
+/* ---------- derived ---------- */
+function subj(id){for(var i=0;i<state.subjects.length;i++)if(state.subjects[i].id===id)return state.subjects[i];return null}
+function lec(id){for(var i=0;i<state.lectures.length;i++)if(state.lectures[i].id===id)return state.lectures[i];return null}
+function due(l,k){
+  if(!l.studied)return "";
+  if(k==="s")return l.studied;
+  var st=STAGES.filter(function(x){return x.k===k})[0];
+  return l.ov[k]||addDays(l.studied,st.offset);
+}
+function afterExam(l,k){var s=subj(l.subjectId);var d=due(l,k);return !!(s&&s.exam&&d&&d>s.exam)}
+function allItems(){
+  var out=[];
+  state.lectures.forEach(function(l){
+    STAGES.forEach(function(st){var d=due(l,st.k);if(d)out.push({l:l,st:st,date:d,done:l.done[st.k],flag:afterExam(l,st.k)})});
+  });
+  return out;
+}
+function subjectColor(s){return PALETTE[(s&&s.color)||0]}
+function progress(s){
+  var ls=state.lectures.filter(function(l){return l.subjectId===s.id});
+  var total=ls.length*4,done=0,per={s:0,r1:0,r2:0,r3:0};
+  ls.forEach(function(l){STAGES.forEach(function(st){if(l.done[st.k]){done++;per[st.k]++}})});
+  return {n:ls.length,total:total,done:done,pct:total?Math.round(done/total*100):0,per:per};
+}
+
+/* ---------- UI state ---------- */
+var ui={tab:"today",calMonth:today().slice(0,7),calSel:today()};
+var hash=(location.hash||"").replace("#","");
+if(["today","subjects","calendar","backup"].indexOf(hash)>=0)ui.tab=hash;
+
+/* ---------- render ---------- */
+var app=document.getElementById("app");
+function render(){
+  document.querySelectorAll(".tab").forEach(function(t){t.setAttribute("aria-selected",t.dataset.tab===ui.tab?"true":"false")});
+  var t=today();
+  var pending=allItems().filter(function(i){return !i.done&&i.date<=t}).length;
+  var tt=document.getElementById("tab-today");
+  tt.innerHTML="Today"+(pending?'<span class="count num">'+pending+'</span>':"");
+  var html="";
+  if(ui.tab==="today")html=viewToday();
+  else if(ui.tab==="subjects")html=viewSubjects();
+  else if(ui.tab==="calendar")html=viewCalendar();
+  else html=viewBackup();
+  app.innerHTML=html;
+}
+
+function checkbox(l,k,label){
+  return '<label class="check" title="'+esc(label)+'"><input type="checkbox" data-act="toggle" data-l="'+l.id+'" data-k="'+k+'" aria-label="'+esc(label)+'"'+(l.done[k]?" checked":"")+'><span class="box">'+ICON.check+'</span></label>';
+}
+function subjChip(s){var c=subjectColor(s);return '<span class="chip" style="background:'+c.bg+';color:'+c.ink+'">'+esc(s?s.name:"")+'</span>'}
+
+function taskRow(i,mode){
+  var s=subj(i.l.subjectId),t=today();
+  var meta=subjChip(s)+'<span class="stage-tag '+(i.st.k==="s"?"s":"")+'">'+(i.st.k==="s"?"Study · Day 1":i.st.short+" · Day "+i.st.day)+'</span>';
+  if(mode==="overdue")meta+='<span class="late">Due '+fmtShort(i.date)+' · '+rel(i.date)+'</span>';
+  else if(mode==="soon")meta+='<span>'+fmt(i.date)+'</span>';
+  if(i.flag)meta+='<span class="late" style="color:var(--warn)">After exam</span>';
+  return '<div class="task'+(i.done?" done":"")+'">'+checkbox(i.l,i.st.k,i.st.label+": "+i.l.title)+
+    '<div class="task-main"><span class="task-title">'+esc(i.l.title)+'</span><div class="task-meta">'+meta+'</div></div></div>';
+}
+
+function viewToday(){
+  var t=today(),d=parse(t);
+  if(!hasData(state)){
+    return '<div class="view"><div class="today-date"><span class="muted small">'+DOW[d.getDay()]+'</span><span class="big">'+d.getDate()+' '+MONTHS[d.getMonth()]+'</span></div>'+
+      '<div class="card"><h2>Set up your first subject</h2><p class="muted" style="margin:0">Add a subject with its exam date, then add lectures and the day you first study each one. Reviews are scheduled for you on Day 2, Day 4 and Day 11.</p>'+
+      '<div class="schedule-strip"><span>Day 1 · Study</span><span>Day 2 · First review</span><span>Day 4 · Second review</span><span>Day 11 · Third review</span></div>'+
+      '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" data-act="add-subject">'+ICON.plus+' Add a subject</button><button class="btn soft" data-act="load-example">Try with example lectures</button></div></div></div>';
+  }
+  var items=allItems();
+  var overdue=items.filter(function(i){return !i.done&&i.date<t}).sort(function(a,b){return a.date<b.date?-1:1});
+  var todays=items.filter(function(i){return i.date===t}).sort(function(a,b){return a.done-b.done});
+  var soon=items.filter(function(i){return !i.done&&i.date>t&&diff(t,i.date)<=7}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
+  var flags=items.filter(function(i){return !i.done&&i.flag});
+  var doneToday=todays.filter(function(i){return i.done}).length;
+
+  var left='<div class="section"><div class="section-head"><h3>Due today</h3><span class="small muted num">'+doneToday+' of '+todays.length+' done</span></div>'+
+    (todays.length?'<div class="task-list">'+todays.map(function(i){return taskRow(i,"today")}).join("")+'</div>':'<div class="empty">Nothing scheduled for today.</div>')+'</div>';
+  left+='<div class="section"><div class="section-head"><h3>Overdue</h3><span class="small muted num">'+overdue.length+'</span></div>'+
+    (overdue.length?'<div class="task-list">'+overdue.map(function(i){return taskRow(i,"overdue")}).join("")+'</div>':'<div class="empty">You are all caught up.</div>')+'</div>';
+  left+='<div class="section"><h3>Next 7 days</h3>'+
+    (soon.length?'<div class="task-list">'+soon.map(function(i){return taskRow(i,"soon")}).join("")+'</div>':'<div class="empty">Nothing in the coming week.</div>')+'</div>';
+
+  var exams=state.subjects.filter(function(s){return s.exam}).sort(function(a,b){return a.exam<b.exam?-1:1});
+  var upcoming=exams.filter(function(s){return s.exam>=t});
+  var right='';
+  if(flags.length){
+    right+='<div class="section"><h3>Reviews after the exam</h3><div class="flag-list">'+flags.map(flagRow).join("")+'</div></div>';
+  }
+  right+='<div class="section"><h3>Upcoming exams</h3>'+(upcoming.length?'<div class="exams">'+upcoming.map(examCard).join("")+'</div>':'<div class="empty">No upcoming exams. Add an exam date to a subject.</div>')+'</div>';
+  right+='<div class="section"><h3>Progress by subject</h3><div class="progress-list">'+state.subjects.map(progRow).join("")+'</div></div>';
+
+  var summary='<div class="summary">'+
+    '<span class="chip" style="background:var(--accent-soft);color:var(--accent-ink)">'+(todays.length-doneToday)+' left today</span>'+
+    (overdue.length?'<span class="chip" style="background:var(--danger-soft);color:var(--danger)">'+overdue.length+' overdue</span>':'')+
+    (flags.length?'<span class="chip" style="background:var(--warn-soft);color:var(--warn)">'+flags.length+' after exam</span>':'')+'</div>';
+
+  return '<div class="view"><div class="today-date"><span class="muted small">'+DOW[d.getDay()]+'</span><span class="big">'+d.getDate()+' '+MONTHS[d.getMonth()]+'</span></div>'+summary+
+    '<div class="today-grid"><div style="display:flex;flex-direction:column;gap:28px;min-width:0">'+left+'</div><div style="display:flex;flex-direction:column;gap:28px;min-width:0">'+right+'</div></div></div>';
+}
+function flagRow(i){
+  var s=subj(i.l.subjectId);
+  return '<div class="flag"><span class="flag-ico">'+ICON.flag+'</span><div class="t"><b>'+esc(i.l.title)+'</b> · '+i.st.label+' is on '+fmtShort(i.date)+', after the '+esc(s.name)+' exam on '+fmtShort(s.exam)+'.</div>'+
+    '<button class="btn sm soft" data-act="pull-forward" data-l="'+i.l.id+'" data-k="'+i.st.k+'">Move before exam</button></div>';
+}
+function examCard(s){
+  var c=subjectColor(s),n=diff(today(),s.exam);
+  var days=n===0?'Today':n+'<small>'+(n===1?'day':'days')+'</small>';
+  return '<div class="exam" style="background:'+c.bg+';color:'+c.ink+'"><span class="name">'+esc(s.name)+'</span><span class="days num">'+days+'</span><span class="when">'+fmt(s.exam)+'</span></div>';
+}
+function progRow(s){
+  var p=progress(s),c=subjectColor(s);
+  return '<div class="prog"><div class="prog-row"><b><span class="dot" style="background:'+c.dot+';margin-right:8px"></span>'+esc(s.name)+'</b><span class="num muted">'+p.pct+'%</span></div>'+
+    '<div class="bar"><span style="width:'+p.pct+'%"></span></div>'+
+    '<div class="prog-stages num"><span>'+p.n+' lectures</span><span>Studied '+p.per.s+'/'+p.n+'</span><span>R1 '+p.per.r1+'</span><span>R2 '+p.per.r2+'</span><span>R3 '+p.per.r3+'</span></div></div>';
+}
+
+function viewSubjects(){
+  var head='<div class="section-head"><h2>Subjects &amp; lectures</h2><button class="btn primary" data-act="add-subject">'+ICON.plus+' Add subject</button></div>';
+  if(!hasData(state))return '<div class="view">'+head+'<div class="empty">No subjects yet. Add one to start tracking lectures.<br><br><button class="btn soft" data-act="load-example">Try with example lectures</button></div></div>';
+  var t=today();
+  var list=state.subjects.slice().sort(function(a,b){return (a.exam||"9999")<(b.exam||"9999")?-1:1}).map(function(s){
+    var c=subjectColor(s),p=progress(s);
+    var examTxt=s.exam?('Exam '+fmt(s.exam)+' · '+(s.exam>=t?(diff(t,s.exam)===0?'today':diff(t,s.exam)+' days left'):'passed')):'No exam date set';
+    var ls=state.lectures.filter(function(l){return l.subjectId===s.id}).sort(function(a,b){return (a.studied||"9")<(b.studied||"9")?-1:1});
+    return '<div class="subject"><div class="subject-head" style="background:'+c.bg+'">'+
+      '<div class="name"><strong style="color:'+c.ink+'">'+esc(s.name)+'</strong><span class="small num" style="color:'+c.ink+'">'+examTxt+' · '+p.pct+'% complete</span></div>'+
+      '<div class="subject-tools"><button class="icon-btn" data-act="edit-subject" data-s="'+s.id+'" aria-label="Edit subject">'+ICON.edit+'</button><button class="icon-btn" data-act="del-subject" data-s="'+s.id+'" aria-label="Delete subject">'+ICON.trash+'</button></div></div>'+
+      '<div class="lectures">'+ls.map(lectureRow).join("")+'</div>'+
+      '<div class="add-lecture"><button class="btn sm soft" data-act="add-lecture" data-s="'+s.id+'">'+ICON.plus+' Add lecture</button></div></div>';
+  }).join("");
+  return '<div class="view">'+head+'<div class="section">'+list+'</div></div>';
+}
+function lectureRow(l){
+  var t=today();
+  var stages=STAGES.map(function(st){
+    var d=due(l,st.k),flag=!l.done[st.k]&&afterExam(l,st.k),od=!l.done[st.k]&&d&&d<t;
+    var cls="stage"+(l.done[st.k]?" is-done":flag?" flagged":od?" overdue":"");
+    var sub=d?(flag?fmtShort(d)+" ⚠":fmtShort(d)):"No date";
+    return '<div class="'+cls+'">'+checkbox(l,st.k,st.label+": "+l.title)+'<div class="lbl"><b>'+(st.k==="s"?"Studied":st.short)+'</b><span class="num">'+sub+'</span></div></div>';
+  }).join("");
+  return '<div class="lecture"><div class="lecture-top"><div class="t"><strong>'+esc(l.title)+'</strong><span class="small muted">'+(l.studied?'Day 1 · '+fmt(l.studied):'First study date not set')+'</span></div>'+
+    '<button class="icon-btn" data-act="edit-lecture" data-l="'+l.id+'" aria-label="Edit lecture">'+ICON.edit+'</button><button class="icon-btn" data-act="del-lecture" data-l="'+l.id+'" aria-label="Delete lecture">'+ICON.trash+'</button></div>'+
+    '<div class="stages">'+stages+'</div></div>';
+}
+
+function viewCalendar(){
+  var t=today(),ym=ui.calMonth.split("-"),y=+ym[0],m=+ym[1]-1;
+  var first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());
+  var byDate={};
+  function push(d,o){(byDate[d]=byDate[d]||[]).push(o)}
+  allItems().forEach(function(i){push(i.date,{type:i.st.k==="s"?"study":"rev",i:i})});
+  state.subjects.forEach(function(s){if(s.exam)push(s.exam,{type:"exam",s:s})});
+  var cells=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(function(d){return '<div class="dow">'+d+'</div>'}).join("");
+  for(var k=0;k<42;k++){
+    var d=new Date(start);d.setDate(start.getDate()+k);var ds=iso(d);
+    if(k===35&&d.getMonth()!==m)break;
+    var list=(byDate[ds]||[]).slice().sort(function(a,b){var o={exam:0,study:1,rev:2};return o[a.type]-o[b.type]});
+    var marks=list.slice(0,3).map(function(o){
+      if(o.type==="exam")return '<span class="mark exam">'+esc(o.s.name)+'</span>';
+      var lbl=(o.type==="study"?"":o.i.st.short+" ")+o.i.l.title;
+      var cls=o.i.flag&&!o.i.done?"warn":o.type==="study"?"study":"rev";
+      return '<span class="mark '+cls+'" style="'+(o.i.done?"opacity:.45;text-decoration:line-through":"")+'">'+esc(lbl)+'</span>';
+    }).join("")+(list.length>3?'<span class="small muted" style="font-size:11px">+'+(list.length-3)+' more</span>':'');
+    cells+='<button class="day'+(d.getMonth()!==m?" out":"")+(ds===t?" is-today":"")+(ds===ui.calSel?" sel":"")+'" data-act="pick-day" data-d="'+ds+'" aria-label="'+fmt(ds)+', '+list.length+' items"><span class="dn num">'+d.getDate()+'</span><span class="marks">'+marks+'</span></button>';
+  }
+  var sel=ui.calSel,items=(byDate[sel]||[]);
+  var detail=items.length?'<div class="dayitems">'+items.map(function(o){
+    if(o.type==="exam")return '<div class="ditem"><span class="exam-ico">'+ICON.exam+'</span><div class="task-main"><span class="task-title">'+esc(o.s.name)+' exam</span><div class="task-meta">'+subjChip(o.s)+'</div></div><label class="small muted" style="display:flex;align-items:center;gap:8px">Move to <input type="date" data-act="move-exam" data-s="'+o.s.id+'" value="'+o.s.exam+'" aria-label="Exam date"></label></div>';
+    var i=o.i,s=subj(i.l.subjectId);
+    return '<div class="ditem'+(i.done?" done":"")+'">'+checkbox(i.l,i.st.k,i.st.label+": "+i.l.title)+'<div class="task-main"><span class="task-title">'+esc(i.l.title)+'</span><div class="task-meta">'+subjChip(s)+'<span class="stage-tag '+(i.st.k==="s"?"s":"")+'">'+(i.st.k==="s"?"Study · Day 1":i.st.label+" · Day "+i.st.day)+'</span>'+(i.flag&&!i.done?'<span class="late" style="color:var(--warn)">After exam ('+fmtShort(s.exam)+')</span>':'')+'</div></div>'+
+      '<label class="small muted" style="display:flex;align-items:center;gap:8px">Move to <input type="date" data-act="move-item" data-l="'+i.l.id+'" data-k="'+i.st.k+'" value="'+i.date+'" aria-label="New date"></label>'+
+      (i.st.k!=="s"&&i.l.ov[i.st.k]?'<button class="btn sm" data-act="reset-ov" data-l="'+i.l.id+'" data-k="'+i.st.k+'">Reset</button>':'')+'</div>';
+  }).join("")+'</div>':'<div class="empty">Nothing on this day.</div>';
+  return '<div class="view"><div class="section"><div class="cal-head"><button class="icon-btn" data-act="cal-prev" aria-label="Previous month">'+ICON.left+'</button><h2>'+MONTHS[m]+' '+y+'</h2><button class="btn sm" data-act="cal-today">Today</button><button class="icon-btn" data-act="cal-next" aria-label="Next month">'+ICON.right+'</button></div>'+
+    '<div class="legend"><span><i style="background:var(--danger)"></i>Exam</span><span><i style="background:var(--soft);border:1px solid var(--line)"></i>First study</span><span><i style="background:var(--accent-soft)"></i>Review</span><span><i style="background:var(--warn-soft)"></i>Review after exam</span></div>'+
+    '<div style="overflow-x:auto"><div class="cal">'+cells+'</div></div></div>'+
+    '<div class="section"><div class="section-head"><h3>'+fmt(sel)+'</h3><span class="small muted">'+rel(sel)+'</span></div>'+detail+
+    '<p class="small muted" style="margin:0">Moving a first study date shifts its reviews too. Moving a single review only changes that review.</p></div></div>';
+}
+
+function viewBackup(){
+  var n=state.lectures.length;
+  return '<div class="view"><h2>Backup &amp; restore</h2>'+
+    '<div class="card"><h3>Where your data lives</h3><p style="margin:0">Every tick and date is saved the moment you change it. '+(cloud.ref?'Your planner is stored privately in your account, so it stays in sync when you open this page on your iPad and your phone.':'It is saved in this browser on this device. Each device keeps its own copy, so use Export here and Restore on your other device to move your data across, and export now and then as a safety copy.')+'</p><p class="small muted" style="margin:0">'+state.subjects.length+' subjects · '+n+' lectures'+(state.updatedAt?' · last change '+new Date(state.updatedAt).toLocaleString():'')+'</p></div>'+
+    '<div class="card"><h3>Export</h3><p style="margin:0">Save a backup file of everything: subjects, exam dates, lectures, review dates and ticks.</p><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" data-act="export-file" id="export-file-btn">Download backup file</button><button class="btn" data-act="export-copy">Copy backup text</button></div></div>'+
+    '<div class="card"><h3>Restore</h3><p style="margin:0">Choose a backup file or paste backup text. Restoring replaces what is in the planner now.</p>'+
+    '<label class="btn soft" style="align-self:flex-start;position:relative">Choose backup file<input type="file" id="restore-file" accept=".json,application/json,text/plain" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden"></label>'+
+    '<textarea id="restore-text" placeholder="…or paste backup text here" aria-label="Backup text"></textarea><button class="btn" data-act="restore-text" style="align-self:flex-start">Restore from pasted text</button></div>'+
+    '<div class="card"><h3>Start over</h3><p style="margin:0">Delete every subject and lecture. Export a backup first if you might want them back.</p><button class="btn" style="align-self:flex-start;color:var(--danger)" data-act="wipe">Delete all data</button></div></div>';
+}
+
+/* ---------- modal ---------- */
+var modalRoot=document.getElementById("modal-root");
+function openModal(html,onMount){
+  modalRoot.innerHTML='<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true">'+html+'</div></div>';
+  var f=modalRoot.querySelector("input[type=text],input,select,button");
+  if(onMount)onMount(modalRoot);
+  if(f)setTimeout(function(){try{f.focus()}catch(e){}},30);
+}
+function closeModal(){modalRoot.innerHTML=""}
+function confirmBox(title,text,okLabel,onOk){
+  openModal('<h2>'+esc(title)+'</h2><p style="margin:0">'+text+'</p><div class="sheet-actions"><button class="btn" data-act="close">Cancel</button><button class="btn danger" id="confirm-ok">'+esc(okLabel)+'</button></div>',function(root){
+    root.querySelector("#confirm-ok").onclick=function(){closeModal();onOk()};
+  });
+}
+function toast(msg){
+  var r=document.getElementById("toast-root");r.innerHTML='<div class="toast" role="status">'+esc(msg)+'</div>';
+  clearTimeout(toast.t);toast.t=setTimeout(function(){r.innerHTML=""},2600);
+}
+
+function subjectForm(s){
+  var isNew=!s;s=s||{name:"",exam:"",color:state.subjects.length%PALETTE.length};
+  var sw=PALETTE.map(function(c,i){return '<button type="button" class="swatch" data-color="'+i+'" style="background:'+c.dot+'" aria-label="Colour '+(i+1)+'" aria-pressed="'+(i===s.color)+'"></button>'}).join("");
+  openModal('<h2>'+(isNew?"Add subject":"Edit subject")+'</h2><form class="form-grid" id="subject-form">'+
+    '<label class="field">Subject name<input type="text" id="f-sname" required maxlength="120" value="'+esc(s.name)+'" placeholder="e.g. Cardiology"></label>'+
+    '<label class="field">Exam date<input type="date" id="f-exam" value="'+esc(s.exam)+'"></label>'+
+    '<div class="field" style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)">Colour<div class="swatches">'+sw+'</div></div>'+
+    '<div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancel</button><button type="submit" class="btn primary">'+(isNew?"Add subject":"Save")+'</button></div></form>',function(root){
+    var color=s.color;
+    root.querySelectorAll(".swatch").forEach(function(b){b.onclick=function(){color=+b.dataset.color;root.querySelectorAll(".swatch").forEach(function(x){x.setAttribute("aria-pressed",x===b)})}});
+    root.querySelector("#subject-form").onsubmit=function(e){
+      e.preventDefault();var name=root.querySelector("#f-sname").value.trim();if(!name)return;
+      var exam=root.querySelector("#f-exam").value;
+      if(isNew)state.subjects.push({id:uid(),name:name,exam:exam,color:color});
+      else{s.name=name;s.exam=exam;s.color=color}
+      closeModal();commit();toast(isNew?"Subject added":"Subject saved");
+    };
+  });
+}
+function lectureForm(l,subjectId){
+  var isNew=!l;
+  l=l||{title:"",subjectId:subjectId,studied:today(),ov:{},done:{s:false,r1:false,r2:false,r3:false}};
+  var opts=state.subjects.map(function(s){return '<option value="'+s.id+'"'+(s.id===l.subjectId?" selected":"")+'>'+esc(s.name)+'</option>'}).join("");
+  openModal('<h2>'+(isNew?"Add lecture":"Edit lecture")+'</h2><form class="form-grid" id="lecture-form">'+
+    '<label class="field">Lecture title<input type="text" id="f-title" required maxlength="200" value="'+esc(l.title)+'" placeholder="e.g. Heart failure"></label>'+
+    '<label class="field">Subject<select id="f-subj">'+opts+'</select></label>'+
+    '<label class="field">First study date (Day 1)<input type="date" id="f-studied" value="'+esc(l.studied)+'"></label>'+
+    '<div class="note" id="f-sched"></div>'+
+    '<details'+(Object.keys(l.ov).length?" open":"")+'><summary style="cursor:pointer;font-weight:600;font-size:14px">Set custom review dates</summary><p class="small muted">Leave blank to follow the Day 2 / 4 / 11 schedule.</p><div class="override-grid">'+
+    ["r1","r2","r3"].map(function(k,i){return '<label class="field">'+STAGES[i+1].label+'<input type="date" id="f-'+k+'" value="'+esc(l.ov[k]||"")+'"></label>'}).join("")+'</div></details>'+
+    '<div class="sheet-actions"><button type="button" class="btn" data-act="close">Cancel</button><button type="submit" class="btn primary">'+(isNew?"Add lecture":"Save")+'</button></div></form>',function(root){
+    function upd(){
+      var sd=root.querySelector("#f-studied").value,box=root.querySelector("#f-sched");
+      if(!sd){box.textContent="Pick a first study date to schedule reviews.";return}
+      var s=subj(root.querySelector("#f-subj").value);
+      box.innerHTML=STAGES.map(function(st){
+        var ov=st.k!=="s"&&root.querySelector("#f-"+st.k).value;var d=ov||addDays(sd,st.offset);
+        var late=s&&s.exam&&d>s.exam;
+        return '<div style="display:flex;justify-content:space-between;gap:10px"><span>'+st.label+' · Day '+st.day+'</span><span class="num"'+(late?' style="color:var(--warn);font-weight:700"':'')+'>'+fmt(d)+(late?' · after exam':'')+'</span></div>';
+      }).join("");
+    }
+    root.querySelectorAll("#f-studied,#f-subj,#f-r1,#f-r2,#f-r3").forEach(function(x){x.addEventListener("input",upd);x.addEventListener("change",upd)});
+    upd();
+    root.querySelector("#lecture-form").onsubmit=function(e){
+      e.preventDefault();var title=root.querySelector("#f-title").value.trim();if(!title)return;
+      var ov={};["r1","r2","r3"].forEach(function(k){var v=root.querySelector("#f-"+k).value;if(v)ov[k]=v});
+      var data={title:title,subjectId:root.querySelector("#f-subj").value,studied:root.querySelector("#f-studied").value,ov:ov};
+      if(isNew){data.id=uid();data.done={s:false,r1:false,r2:false,r3:false};state.lectures.push(data)}
+      else{Object.keys(data).forEach(function(k){l[k]=data[k]})}
+      closeModal();commit();toast(isNew?"Lecture added":"Lecture saved");
+    };
+  });
+}
+
+/* ---------- example data ---------- */
+function loadExample(){
+  var t=today(),a=uid(),b=uid();
+  state.subjects=[
+    {id:a,name:"Cardiology (example)",exam:addDays(t,21),color:0},
+    {id:b,name:"Pharmacology (example)",exam:addDays(t,8),color:1}
+  ];
+  function L(sid,title,off,done){return {id:uid(),subjectId:sid,title:title,studied:addDays(t,off),ov:{},done:{s:done>0,r1:done>1,r2:done>2,r3:done>3}}}
+  state.lectures=[
+    L(a,"Heart failure",-3,2), L(a,"ECG basics",-12,3), L(a,"Ischaemic heart disease",-1,1), L(a,"Valvular disease",1,0),
+    L(b,"Autonomic drugs",-6,2), L(b,"Antiarrhythmics",0,0), L(b,"Anticoagulants",-2,1)
+  ];
+  commit();toast("Example lectures loaded. Delete them any time.");
+}
+
+/* ---------- export / restore ---------- */
+function backupText(){return JSON.stringify({app:"med-study-planner",version:1,exportedAt:new Date().toISOString(),subjects:state.subjects,lectures:state.lectures},null,2)}
+var downloads=null;
+function doRestore(text){
+  var obj;try{obj=JSON.parse(text)}catch(e){toast("That text is not a valid backup.");return}
+  var next=normalize(obj);
+  if(!next.subjects.length){toast("No subjects found in that backup.");return}
+  confirmBox("Restore this backup?","It has "+next.subjects.length+" subjects and "+next.lectures.length+" lectures. It will replace everything in the planner now.","Restore",function(){
+    state.subjects=next.subjects;state.lectures=next.lectures;commit();toast("Backup restored");
+  });
+}
+
+/* ---------- events ---------- */
+document.getElementById("tabs").addEventListener("click",function(e){
+  var b=e.target.closest(".tab");if(!b)return;ui.tab=b.dataset.tab;render();window.scrollTo(0,0);
+});
+document.addEventListener("change",function(e){
+  var el=e.target,act=el.dataset&&el.dataset.act;
+  if(el.id==="restore-file"&&el.files&&el.files[0]){var r=new FileReader();r.onload=function(){doRestore(String(r.result))};r.readAsText(el.files[0]);el.value="";return}
+  if(act==="toggle"){var l=lec(el.dataset.l);if(!l)return;l.done[el.dataset.k]=el.checked;commit();return}
+  if(act==="move-item"){
+    var l2=lec(el.dataset.l),k=el.dataset.k,v=el.value;if(!l2||!validDate(v))return;
+    if(k==="s")l2.studied=v;else l2.ov[k]=v;
+    ui.calSel=v;ui.calMonth=v.slice(0,7);commit();toast("Moved to "+fmt(v));return;
+  }
+  if(act==="move-exam"){var s=subj(el.dataset.s);if(!s||!validDate(el.value))return;s.exam=el.value;ui.calSel=el.value;ui.calMonth=el.value.slice(0,7);commit();toast("Exam moved to "+fmt(el.value));return}
+});
+document.addEventListener("click",function(e){
+  var el=e.target.closest("[data-act]");if(!el)return;var act=el.dataset.act;
+  if(act==="scrim"){if(e.target===el)closeModal();return}
+  if(act==="toggle"||act==="move-item"||act==="move-exam")return;
+  if(act==="close"){closeModal();return}
+  if(act==="add-subject"){subjectForm(null);return}
+  if(act==="edit-subject"){subjectForm(subj(el.dataset.s));return}
+  if(act==="del-subject"){var s=subj(el.dataset.s);var n=state.lectures.filter(function(l){return l.subjectId===s.id}).length;
+    confirmBox("Delete "+s.name+"?","This also deletes its "+n+" lecture"+(n===1?"":"s")+" and their progress.","Delete subject",function(){
+      state.subjects=state.subjects.filter(function(x){return x.id!==s.id});state.lectures=state.lectures.filter(function(l){return l.subjectId!==s.id});commit();toast("Subject deleted")});return}
+  if(act==="add-lecture"){lectureForm(null,el.dataset.s);return}
+  if(act==="edit-lecture"){lectureForm(lec(el.dataset.l));return}
+  if(act==="del-lecture"){var l=lec(el.dataset.l);confirmBox("Delete this lecture?",esc(l.title)+" and its review progress will be removed.","Delete lecture",function(){
+      state.lectures=state.lectures.filter(function(x){return x.id!==l.id});commit();toast("Lecture deleted")});return}
+  if(act==="pull-forward"){var l3=lec(el.dataset.l),k=el.dataset.k,s3=subj(l3.subjectId);
+    var target=addDays(s3.exam,-1);if(target<today())target=today();if(target>s3.exam)target=s3.exam;
+    if(k==="s")l3.studied=target;else l3.ov[k]=target;commit();toast("Moved to "+fmt(target));return}
+  if(act==="reset-ov"){var l4=lec(el.dataset.l);delete l4.ov[el.dataset.k];commit();toast("Back on the normal schedule");return}
+  if(act==="pick-day"){ui.calSel=el.dataset.d;if(el.dataset.d.slice(0,7)!==ui.calMonth)ui.calMonth=el.dataset.d.slice(0,7);render();return}
+  if(act==="cal-prev"||act==="cal-next"){var p=ui.calMonth.split("-"),d=new Date(+p[0],+p[1]-1+(act==="cal-next"?1:-1),1);ui.calMonth=iso(d).slice(0,7);render();return}
+  if(act==="cal-today"){ui.calMonth=today().slice(0,7);ui.calSel=today();render();return}
+  if(act==="load-example"){loadExample();return}
+  if(act==="export-file"){
+    var name="study-planner-backup-"+today()+".json";
+    if(!downloads){try{var bl=new Blob([backupText()],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500);toast("Backup file saved")}catch(e){toast("Couldn't save the file. Use Copy backup text instead.")}return}
+    downloads.save({filename:name,data:backupText()}).then(function(){toast("Backup saved")},function(err){if(err&&err.code==="declined")return;toast("Couldn't save the file. Use Copy backup text instead.")});return}
+  if(act==="export-copy"){var txt=backupText();
+    var fallback=function(){openModal('<h2>Backup text</h2><p class="small muted" style="margin:0">Select all and copy, then keep it in Notes or Files.</p><textarea id="backup-out" readonly>'+esc(txt)+'</textarea><div class="sheet-actions"><button class="btn primary" data-act="close">Done</button></div>',function(r){var ta=r.querySelector("#backup-out");setTimeout(function(){ta.focus();ta.select()},50)})};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast("Backup copied. Paste it into Notes to keep it.")},fallback)}else fallback();return}
+  if(act==="restore-text"){var v=document.getElementById("restore-text").value.trim();if(!v){toast("Paste backup text first.");return}doRestore(v);return}
+  if(act==="wipe"){confirmBox("Delete all data?","Every subject, lecture and tick will be removed. This cannot be undone.","Delete everything",function(){state.subjects=[];state.lectures=[];commit();toast("All data deleted")});return}
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"&&modalRoot.innerHTML)closeModal()});
+document.addEventListener("visibilitychange",function(){if(!document.hidden)render()});
+
+render();
+setSync("local");
+initCloud();
+if(window.claude&&typeof window.claude.use==="function"){
+  window.claude.use("downloads").then(function(d){downloads=d;if(!d&&ui.tab==="backup")render()}).catch(function(){});
+}
+})();
+</script>
+
+</body></html>
